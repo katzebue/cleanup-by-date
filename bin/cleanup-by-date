@@ -1,0 +1,54 @@
+#!/bin/bash
+set -e
+
+DIR="$1"
+REGEX="${2:-vpoxod-.*-(\d{4}-\d{2}-\d{2}_\d{4})\.sql\.gz}"
+AGE="$3"
+shift 3
+
+LOG=""
+DRYRUN=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --log) LOG="$2"; shift ;;
+    --dry-run) DRYRUN=1 ;;
+  esac
+  shift
+done
+
+[[ -z "$DIR" || -z "$AGE" ]] && echo "Usage: $0 DIR REGEX AGE [--log FILE] [--dry-run]" && exit 1
+
+NOW=$(date +%s)
+UNIT="${AGE: -1}"
+COUNT="${AGE::-1}"
+
+case "$UNIT" in
+  d) OFFSET=$((COUNT * 86400)) ;;
+  h) OFFSET=$((COUNT * 3600)) ;;
+  w) OFFSET=$((COUNT * 604800)) ;;
+  m) OFFSET=$((COUNT * 2592000)) ;; # approx month
+  *) echo "Invalid age format: use Nd, Nh, Nw, Nm" && exit 1 ;;
+esac
+
+CUTOFF=$((NOW - OFFSET))
+CUTOFF_HUMAN=$(date -d "@$CUTOFF" '+%Y-%m-%d %H:%M:%S %Z')
+NOW_HUMAN=$(date '+%Y-%m-%d %H:%M:%S %Z')
+
+echo "[INFO] Current time: $NOW_HUMAN"
+echo "[INFO] Deleting files older than: $CUTOFF_HUMAN"
+
+MATCHED=0
+for f in "$DIR"/*; do
+  [[ -f "$f" ]] || continue
+  [[ "$f" =~ $REGEX ]] || continue
+  FILE_DATE="${BASH_REMATCH[1]}"
+  FILE_TS=$(date -d "${FILE_DATE:0:10} ${FILE_DATE:11:2}:${FILE_DATE:13:2}" +%s 2>/dev/null || echo 0)
+
+  if (( FILE_TS < CUTOFF )); then
+    echo "[INFO] DELETE $f (file date: $FILE_DATE)"
+    (( DRYRUN == 0 )) && rm -f "$f"
+    ((MATCHED++))
+  fi
+done
+
+[[ -n "$LOG" ]] && echo "$(date '+%Y-%m-%d %H:%M:%S') Deleted $MATCHED files older than $CUTOFF_HUMAN" >> "$LOG"
