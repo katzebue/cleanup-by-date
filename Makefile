@@ -1,6 +1,5 @@
-SRC=src/cleanup-by-date
 BIN_NAME=cleanup-by-date
-LOG=test.log
+SRC=src/$(BIN_NAME)
 TEST_DIR=test
 TEST_FILE=$(TEST_DIR)/test.bats
 
