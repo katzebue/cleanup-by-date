@@ -57,10 +57,8 @@ teardown() {
 
 @test "fails with invalid regex" {
   run "$SCRIPT" "$TMP_DIR" 1d --regex "([0-9]{4"
-  echo status: $status
-  echo output: $output
   [ "$status" -eq 4 ]
-  [[ "$output" == *"Invalid regex"* ]]
+  [[ "$output" == *"Regex does not match expected filename format"* ]]
 }
 
 @test "fails with invalid period format" {
@@ -70,7 +68,7 @@ teardown() {
 }
 
 @test "dry-run shows files but doesn't delete" {
-  run "$SCRIPT" "$TMP_DIR" 5y --regex '.*\.sql\.gz' --dry-run
+  run "$SCRIPT" "$TMP_DIR" 5y --dry-run
   echo $status
   echo "$output"
   [ "$status" -eq 0 ]
@@ -79,7 +77,7 @@ teardown() {
 }
 
 @test "deletes old files correctly" {
-  run "$SCRIPT" "$TMP_DIR" 365d --regex '.*\.sql\.gz'
+  run "$SCRIPT" "$TMP_DIR" 365d
   echo status: $status
   echo output: $output
   [ "$status" -eq 0 ]
@@ -97,7 +95,7 @@ teardown() {
 }
 
 @test "does not touch non-matching files" {
-  run "$SCRIPT" "$TMP_DIR" 5y --regex '.*\.sql\.gz'
+  run "$SCRIPT" "$TMP_DIR" 5y
   [ "$status" -eq 0 ]
   [ -f "$TMP_DIR/ignore-this-file.txt" ]
 }

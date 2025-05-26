@@ -35,10 +35,26 @@ LOG_FILE=""
 shift 2 || true
 while (($#)); do
   case $1 in
-    --regex)   if (( $# >= 2 )); then REGEX=$2; shift; else echo "Missing value for --regex"; exit 1; fi ;;
-    --log)     if (( $# >= 2 )); then LOG_FILE=$2; shift; else echo "Missing value for --log"; exit 1; fi ;;
-    --dry-run) DRY_RUN=true ;;
-    *)         echo "Unknown option: $1" >&2; show_help; exit 1 ;;
+  --regex) if (($# >= 2)); then
+    REGEX=$2
+    shift
+  else
+    echo "Missing value for --regex"
+    exit 1
+  fi ;;
+  --log) if (($# >= 2)); then
+    LOG_FILE=$2
+    shift
+  else
+    echo "Missing value for --log"
+    exit 1
+  fi ;;
+  --dry-run) DRY_RUN=true ;;
+  *)
+    echo "Unknown option: $1" >&2
+    show_help
+    exit 1
+    ;;
   esac
   shift
 done
@@ -50,25 +66,65 @@ fi
 
 now_local=$(date "+%Y-%m-%d %H:%M:%S")
 case $PERIOD in
-  *y) years=${PERIOD%y}; cutoff=$(date -d "$years year ago" "+%Y-%m-%d %H:%M:%S");;
-  *w) weeks=${PERIOD%w}; cutoff=$(date -d "$weeks week ago" "+%Y-%m-%d %H:%M:%S");;
-  *d) days=${PERIOD%d};  cutoff=$(date -d "$days day ago" "+%Y-%m-%d %H:%M:%S");;
-  *h) hours=${PERIOD%h}; cutoff=$(date -d "$hours hour ago" "+%Y-%m-%d %H:%M:%S");;
-  *)
-    echo "[ERROR] Invalid period format: $PERIOD" >&2
-    exit 3
-    ;;
+*y)
+  years=${PERIOD%y}
+  cutoff=$(date -d "$years year ago" "+%Y-%m-%d %H:%M:%S")
+  ;;
+*w)
+  weeks=${PERIOD%w}
+  cutoff=$(date -d "$weeks week ago" "+%Y-%m-%d %H:%M:%S")
+  ;;
+*d)
+  days=${PERIOD%d}
+  cutoff=$(date -d "$days day ago" "+%Y-%m-%d %H:%M:%S")
+  ;;
+*h)
+  hours=${PERIOD%h}
+  cutoff=$(date -d "$hours hour ago" "+%Y-%m-%d %H:%M:%S")
+  ;;
+*)
+  echo "[ERROR] Invalid period format: $PERIOD" >&2
+  exit 3
+  ;;
 esac
-
-#if ! echo "" | grep -P "$REGEX" >/dev/null 2>&1; then
-#  echo "[ERROR] Invalid regex: $REGEX" >&2
-#  exit 4
-#fi
 
 log() {
   local msg="[INFO] $1"
   [[ -n $LOG_FILE ]] && echo "$msg" >>"$LOG_FILE" || echo "$msg"
 }
+
+validate_regex() {
+  local regex="$1"
+  local test_name raw date_str time_str full
+
+  test_name="test_2024-12-01_1200.txt"
+  if [[ "$test_name" =~ $regex ]]; then
+    raw="${BASH_REMATCH[0]}"
+  else
+    test_name="test_2024-12-01.txt"
+    if [[ "$test_name" =~ $regex ]]; then
+      raw="${BASH_REMATCH[0]}"
+    else
+      echo "[ERROR] Regex does not match expected filename format (example: 2024-12-01 or 2024-12-01_1200)" >&2
+      exit 4
+    fi
+  fi
+
+  date_str="${raw:0:10}"
+  if [[ "$raw" == *"_"* ]]; then
+    time_str="${raw:11:2}:${raw:13:2}"
+  else
+    time_str="00:00"
+  fi
+  full="${date_str} ${time_str}"
+
+  if ! date -d "$full" "+%Y-%m-%d %H:%M:%S" >/dev/null 2>&1; then
+    echo "[ERROR] Extracted date '$full' is not parseable by date" >&2
+    exit 4
+  fi
+}
+
+validate_regex "$REGEX"
 
 log "Now (local): $now_local"
 log "Cutoff for deletion: $cutoff (based on: $PERIOD)"
@@ -79,7 +135,13 @@ for file in "$DIR"/*; do
   [[ -f "$file" ]] || continue
   if [[ "$file" =~ $REGEX ]]; then
     raw_date="${BASH_REMATCH[0]}"
-    parsed_date=$(date -d "${raw_date:0:10} ${raw_date:11:2}:${raw_date:13:2}" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || true)
+    date_part="${raw_date:0:10}"
+    if [[ "$raw_date" == *"_"* ]]; then
+      time_part="${raw_date:11:2}:${raw_date:13:2}"
+    else
+      time_part="00:00"
+    fi
+    parsed_date=$(date -d "$date_part $time_part" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || true)
     if [[ -n $parsed_date && "$parsed_date" < "$cutoff" ]]; then
       if $DRY_RUN; then
         log "Would delete: $file (file date: $parsed_date)"
