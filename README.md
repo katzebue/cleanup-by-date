@@ -7,25 +7,28 @@ A bash utility to clean up files based on the date in their filenames.
 
 ## 🔍 Description
 
-`cleanup-by-date` is a shell utility to delete files based on dates in filenames.
-It supports custom regex, time-based conditions (like 7d, 3h), dry-run, logging and is cron-friendly.
+`cleanup-by-date` is a CLI tool for deleting old files by extracting dates from filenames using regex.
+Supports dry-run, custom date patterns, logging, and cron jobs. Works with `date` or `gdate`.
 
 ## 🔧 Features
-- Local time support
-- Regex-matched dates in filenames
-- Time-range deletion (e.g. 7d, 3h, 2w)
-- Dry-run and log mode
+
+- 📅 Local date parsing (YYYY-MM-DD[_HHMM])
+- 🔍 Regex with optional capturing group for date
+- 🕒 Flexible time period (e.g. `7d`, `3h`, `2w`, `1y`)
+- 🧪 Dry-run mode
+- 📓 Optional logging
 
 ## 🏁 Example Filenames
 - `backup-2025-05-20_1300.sql.gz`
 - `site-dump-2024-12-11_0000.tar.gz`
+- `log-2023-09-01.txt`
 
 ## 🛠 Installation
 
 ```bash
 git clone https://github.com/katzebue/cleanup-by-date.git
 cd cleanup-by-date
-sudo install -m 755 bin/cleanup-by-date /usr/local/bin/cleanup-by-date
+sudo make install
 ```
 
 ## 🧪 Run Tests
@@ -34,8 +37,22 @@ sudo install -m 755 bin/cleanup-by-date /usr/local/bin/cleanup-by-date
 make test
 ```
 
-## 📦 Example Usage
+## ✅ Usage
+
+cleanup-by-date <path> <period> [options]
+
+Arguments
+•	<path>: directory to scan
+•	<period>: how old files should be (e.g. 7d, 3h, 1w, 1y)
+
+Options
+•	--regex <regex>: custom regex with optional capturing group (default: ([0-9]{4}-[0-9]{2}-[0-9]{2}(_[0-9]{4})?))
+•	--log <file>: write actions to log file
+•	--dry-run: simulate deletions
+•	--now <date>: override current date (format: YYYY-MM-DD HH:MM:SS)
+
+Example
 
 ```bash
-cleanup-by-date /path/to/files 7d --log /var/log/cleanup.log
+cleanup-by-date /var/backups 30d --regex 'dump-.*([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4})\.sql' --log cleanup.log --dry-run
 ```
