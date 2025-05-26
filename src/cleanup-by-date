@@ -75,7 +75,7 @@ if [[ ! -d "$DIR" ]]; then
   exit 2
 fi
 
-DATE_BIN=$(command -v gdate || echo date)
+DATE_BIN=$(command -v gdate || command -v date)
 
 if [[ -n "$NOW_OVERRIDE" ]]; then
   now_local=$($DATE_BIN -u -d "$NOW_OVERRIDE" "+%Y-%m-%d %H:%M:%S") || {
