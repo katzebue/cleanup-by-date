@@ -49,6 +49,10 @@ while (($#)); do
     --log)
       if [[ $# -ge 2 ]]; then
         LOG_FILE=$2
+        touch "$LOG_FILE" 2>/dev/null || {
+          echo "[ERROR] Cannot write log file: $LOG_FILE" >&2
+          exit 6
+        }
         shift
       else
         echo "Missing value for --log" >&2
@@ -103,7 +107,11 @@ fi
 
 log() {
   local msg="[INFO] $1"
-  [[ -n $LOG_FILE ]] && echo "$msg" >>"$LOG_FILE" || echo "$msg"
+  if [[ -n "$LOG_FILE" ]]; then
+    echo "$msg" >>"$LOG_FILE"
+  else
+    echo "$msg"
+  fi
 }
 
 extract_datetime() {
@@ -160,13 +168,14 @@ log "Using regex: $REGEX"
 deleted=0
 for file in "$DIR"/*; do
   [[ -f "$file" ]] || continue
-  if [[ $(basename "$file") =~ $REGEX ]]; then
+  fname=$(basename "$file")
+  if [[ "$fname" =~ $REGEX ]]; then
     if [[ ${#BASH_REMATCH[@]} -gt 1 ]]; then
       match="${BASH_REMATCH[1]}"
     else
       match="${BASH_REMATCH[0]}"
     fi
-    parsed_date=$(extract_datetime "$match")
+    parsed_date=$(extract_datetime "$match" 2>/dev/null || echo "")
     if [[ -n $parsed_date ]]; then
       file_ts=$($DATE_BIN -u -d "$parsed_date" +%s 2>/dev/null || echo "")
       cutoff_ts=$($DATE_BIN -u -d "$cutoff" +%s 2>/dev/null || echo "")
@@ -186,6 +195,8 @@ for file in "$DIR"/*; do
           ((deleted++))
         fi
       fi
+    else
+      log "Skipping file with unparsable datetime: $fname"
     fi
   fi
 done
