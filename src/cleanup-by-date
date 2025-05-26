@@ -177,7 +177,7 @@ for file in "$DIR"/*; do
 
       if [[ -n "$file_ts" && -n "$cutoff_ts" ]]; then
         if (( file_ts <= cutoff_ts )); then
-          if $DRY_RUN; then
+          if [[ "$DRY_RUN" == true ]]; then
             log "Would delete: $file (file date: $parsed_date)"
           else
             rm -f "$file"
