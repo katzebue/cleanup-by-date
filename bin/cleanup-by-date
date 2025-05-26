@@ -1,54 +1,96 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
 
-DIR="$1"
-REGEX="${2:-vpoxod-.*-(\d{4}-\d{2}-\d{2}_\d{4})\.sql\.gz}"
-AGE="$3"
-shift 3
+set -euo pipefail
 
-LOG=""
-DRYRUN=0
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --log) LOG="$2"; shift ;;
-    --dry-run) DRYRUN=1 ;;
+show_help() {
+  cat <<EOF
+Usage: cleanup-by-date <path> <period> [--regex <regex>] [--log <file>] [--dry-run]
+
+Arguments:
+  <path>        Directory to scan
+  <period>      Time threshold (e.g. 7d, 1w, 24h, 1y)
+
+Options:
+  --regex <regex> Regex with date capturing group (optional, default: [0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4})
+  --dry-run     Simulate deletions
+  --log <file>  Write actions to specified log file
+
+Date format:
+  The script expects filenames with dates like: 2024-12-01_1200
+  Capture group should isolate this datetime to be parsed.
+EOF
+}
+
+if [[ $# -lt 1 ]] || [[ $1 == "--help" ]]; then
+  show_help
+  exit 0
+fi
+
+DIR=$1
+PERIOD=$2
+REGEX=${3:-'[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}'}
+DRY_RUN=false
+LOG_FILE=""
+
+shift 3 || true
+while (($#)); do
+  case $1 in
+    --regex)   if (( $# >= 2 )); then REGEX=$2; shift; else echo "Missing value for --regex"; exit 1; fi ;;
+    --dry-run) DRY_RUN=true ;;
+    --log)     if (( $# >= 2 )); then LOG_FILE=$2; shift; else echo "Missing value for --log"; exit 1; fi ;;
+    *)         echo "Unknown option: $1" >&2; show_help; exit 1 ;;
   esac
   shift
 done
 
-[[ -z "$DIR" || -z "$AGE" ]] && echo "Usage: $0 DIR REGEX AGE [--log FILE] [--dry-run]" && exit 1
+if [[ ! -d "$DIR" ]]; then
+  echo "[ERROR] Directory does not exist: $DIR" >&2
+  exit 2
+fi
 
-NOW=$(date +%s)
-UNIT="${AGE: -1}"
-COUNT="${AGE::-1}"
-
-case "$UNIT" in
-  d) OFFSET=$((COUNT * 86400)) ;;
-  h) OFFSET=$((COUNT * 3600)) ;;
-  w) OFFSET=$((COUNT * 604800)) ;;
-  m) OFFSET=$((COUNT * 2592000)) ;; # approx month
-  *) echo "Invalid age format: use Nd, Nh, Nw, Nm" && exit 1 ;;
+now_local=$(date "+%Y-%m-%d %H:%M:%S")
+case $PERIOD in
+  *y) years=${PERIOD%y}; cutoff=$(date -d "$years year ago" "+%Y-%m-%d %H:%M:%S");;
+  *w) weeks=${PERIOD%w}; cutoff=$(date -d "$weeks week ago" "+%Y-%m-%d %H:%M:%S");;
+  *d) days=${PERIOD%d};  cutoff=$(date -d "$days day ago" "+%Y-%m-%d %H:%M:%S");;
+  *h) hours=${PERIOD%h}; cutoff=$(date -d "$hours hour ago" "+%Y-%m-%d %H:%M:%S");;
+  *)
+    echo "[ERROR] Invalid period format: $PERIOD" >&2
+    exit 3
+    ;;
 esac
 
-CUTOFF=$((NOW - OFFSET))
-CUTOFF_HUMAN=$(date -d "@$CUTOFF" '+%Y-%m-%d %H:%M:%S %Z')
-NOW_HUMAN=$(date '+%Y-%m-%d %H:%M:%S %Z')
+if ! grep -Eq "$REGEX" <<<"" 2>/dev/null; then
+  echo "[ERROR] Invalid regex: $REGEX" >&2
+  exit 4
+fi
 
-echo "[INFO] Current time: $NOW_HUMAN"
-echo "[INFO] Deleting files older than: $CUTOFF_HUMAN"
+log() {
+  local msg="[INFO] $1"
+  [[ -n $LOG_FILE ]] && echo "$msg" >>"$LOG_FILE" || echo "$msg"
+}
 
-MATCHED=0
-for f in "$DIR"/*; do
-  [[ -f "$f" ]] || continue
-  [[ "$f" =~ $REGEX ]] || continue
-  FILE_DATE="${BASH_REMATCH[1]}"
-  FILE_TS=$(date -d "${FILE_DATE:0:10} ${FILE_DATE:11:2}:${FILE_DATE:13:2}" +%s 2>/dev/null || echo 0)
+log "Now (local): $now_local"
+log "Cutoff for deletion: $cutoff (based on: $PERIOD)"
+log "Using regex: $REGEX"
 
-  if (( FILE_TS < CUTOFF )); then
-    echo "[INFO] DELETE $f (file date: $FILE_DATE)"
-    (( DRYRUN == 0 )) && rm -f "$f"
-    ((MATCHED++))
+deleted=0
+for file in "$DIR"/*; do
+  [[ -f "$file" ]] || continue
+  if [[ "$file" =~ $REGEX ]]; then
+    raw_date="${BASH_REMATCH[0]}"
+    parsed_date=$(date -d "${raw_date:0:10} ${raw_date:11:2}:${raw_date:13:2}" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || true)
+    if [[ -n $parsed_date && "$parsed_date" < "$cutoff" ]]; then
+      if $DRY_RUN; then
+        log "Would delete: $file (file date: $parsed_date)"
+      else
+        rm -f "$file"
+        log "Deleted: $file (file date: $parsed_date)"
+      fi
+      ((deleted++))
+    fi
   fi
 done
 
-[[ -n "$LOG" ]] && echo "$(date '+%Y-%m-%d %H:%M:%S') Deleted $MATCHED files older than $CUTOFF_HUMAN" >> "$LOG"
+log "Done. Files deleted: $deleted"
+exit 0

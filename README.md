@@ -37,5 +37,5 @@ make test
 ## 📦 Example Usage
 
 ```bash
-cleanup-by-date /path/to/files '' 7d --log /var/log/cleanup.log
+cleanup-by-date /path/to/files 7d --log /var/log/cleanup.log
 ```
