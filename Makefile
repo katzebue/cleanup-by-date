@@ -1,15 +1,16 @@
-BIN=bin/cleanup-by-date
+SRC=src/cleanup-by-date
+BIN_NAME=cleanup-by-date
 LOG=test.log
-TEST_DIR=tests
+TEST_DIR=test
+TEST_FILE=$(TEST_DIR)/test.bats
+
+.PHONY: install lint dryrun test
 
 install:
-	sudo install -m 755 $(BIN) /usr/local/bin/cleanup-by-date
+	install -m 755 $(SRC) /usr/local/bin/$(BIN_NAME)
 
 lint:
-	shellcheck $(BIN)
-
-dryrun:
-	$(BIN) testdata '' 7d --dry-run --log $(LOG)
+	shellcheck $(SRC)
 
 test:
-	bats $(TEST_DIR)
+	./$(TEST_DIR)/bats/bin/bats $(TEST_FILE)
