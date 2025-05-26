@@ -61,7 +61,7 @@ teardown() {
 @test "fails with invalid regex" {
   run "$SCRIPT" "$TMP_DIR" 1d --regex "([0-9]{4"
   [ "$status" -eq 4 ]
-  [[ "$output" == *"Regex does not match expected filename format"* ]]
+  [[ "$output" == *"Regex does not match any filenames in $TMP_DIR"* ]]
 }
 
 @test "fails with invalid period format" {
