@@ -95,27 +95,32 @@ log() {
 
 validate_regex() {
   local regex="$1"
-  local test_name raw date_str time_str full
+  local dir="$2"
+  local found=""
+  local f fname date_str time_str full
 
-  test_name="test_2024-12-01_1200.txt"
-  if [[ "$test_name" =~ $regex ]]; then
-    raw="${BASH_REMATCH[0]}"
-  else
-    test_name="test_2024-12-01.txt"
-    if [[ "$test_name" =~ $regex ]]; then
-      raw="${BASH_REMATCH[0]}"
-    else
-      echo "[ERROR] Regex does not match expected filename format (example: 2024-12-01 or 2024-12-01_1200)" >&2
-      exit 4
+  [[ -d "$dir" ]] || {
+    echo "[ERROR] Directory for regex validation does not exist: $dir" >&2
+    exit 5
+  }
+
+  for f in "$dir"/*; do
+    [[ -f "$f" ]] || continue
+    fname=$(basename "$f")
+    if [[ "$fname" =~ $regex ]]; then
+      found="${BASH_REMATCH[0]}"
+      break
     fi
+  done
+
+  if [[ -z $found ]]; then
+    echo "[ERROR] Regex does not match any filenames in $dir" >&2
+    exit 4
   fi
 
-  date_str="${raw:0:10}"
-  if [[ "$raw" == *"_"* ]]; then
-    time_str="${raw:11:2}:${raw:13:2}"
-  else
-    time_str="00:00"
-  fi
+  date_str="${found:0:10}"
+  time_str="00:00"
+  [[ "$found" == *"_"* ]] && time_str="${found:11:2}:${found:13:2}"
   full="${date_str} ${time_str}"
 
   if ! date -d "$full" "+%Y-%m-%d %H:%M:%S" >/dev/null 2>&1; then
@@ -124,7 +129,7 @@ validate_regex() {
   fi
 }
 
-validate_regex "$REGEX"
+validate_regex "$REGEX" "$DIR"
 
 log "Now (local): $now_local"
 log "Cutoff for deletion: $cutoff (based on: $PERIOD)"

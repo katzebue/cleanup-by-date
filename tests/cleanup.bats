@@ -48,11 +48,14 @@ teardown() {
   [[ "$output" == *"does not exist"* ]]
 }
 
-@test "handles empty directory without error" {
-  mkdir -p "$TMP_DIR/empty-dir"
-  run "$SCRIPT" "$TMP_DIR/empty-dir" 1d
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Files deleted: 0"* ]]
+@test "empty directory fails if no files match regex" {
+  local dir="$TMP_DIR/empty-dir"
+  mkdir -p "$dir"
+
+  run "$SCRIPT" "$dir" 1d
+
+  [ "$status" -eq 4 ]
+  [[ "$output" == *"Regex does not match any filenames in $dir"* ]]
 }
 
 @test "fails with invalid regex" {
