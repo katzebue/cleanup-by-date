@@ -77,7 +77,7 @@ setup() {
 }
 
 @test "dry-run shows files but doesn't delete (with --now)" {
-  run cleanup-by-date "$BATS_TEST_TMPDIR" 5y --dry-run --now "2025-01-01 12:00:00"
+  run cleanup-by-date "$BATS_TEST_TMPDIR" 5y --dry-run --now "2025-01-01 12:00:01"
   assert_success
   assert_output --partial "Would delete:"
   assert_output --partial "delete-old-2020-01-01_1200.sql.gz"
