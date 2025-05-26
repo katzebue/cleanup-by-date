@@ -107,11 +107,13 @@ fi
 
 log() {
   local msg="[INFO] $1"
-  if [[ -n "$LOG_FILE" ]]; then
-    echo "$msg" >>"$LOG_FILE"
-  else
-    echo "$msg"
-  fi
+  {
+    if [[ -n "$LOG_FILE" ]]; then
+      echo "$msg" >>"$LOG_FILE"
+    else
+      echo "$msg"
+    fi
+  } || true
 }
 
 extract_datetime() {
