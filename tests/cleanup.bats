@@ -43,32 +43,34 @@ teardown() {
 }
 
 @test "fails with invalid directory" {
-  run "$SCRIPT" /invalid/path "1d" ".*"
+  run "$SCRIPT" /invalid/path 1d
   [ "$status" -eq 2 ]
   [[ "$output" == *"does not exist"* ]]
 }
 
 @test "handles empty directory without error" {
   mkdir -p "$TMP_DIR/empty-dir"
-  run "$SCRIPT" "$TMP_DIR/empty-dir" "1d" ".*"
+  run "$SCRIPT" "$TMP_DIR/empty-dir" 1d
   [ "$status" -eq 0 ]
   [[ "$output" == *"Files deleted: 0"* ]]
 }
 
 @test "fails with invalid regex" {
-  run "$SCRIPT" "$TMP_DIR" "1d" "([0-9]{4"
+  run "$SCRIPT" "$TMP_DIR" 1d --regex "([0-9]{4"
+  echo status: $status
+  echo output: $output
   [ "$status" -eq 4 ]
   [[ "$output" == *"Invalid regex"* ]]
 }
 
 @test "fails with invalid period format" {
-  run "$SCRIPT" "$TMP_DIR" "1x" ".*"
+  run "$SCRIPT" "$TMP_DIR" 1x --regex ".*"
   [ "$status" -eq 3 ]
   [[ "$output" == *"Invalid period format"* ]]
 }
 
 @test "dry-run shows files but doesn't delete" {
-  run "$SCRIPT" "$TMP_DIR" "5y" '.*\.sql\.gz' --dry-run
+  run "$SCRIPT" "$TMP_DIR" 5y --regex '.*\.sql\.gz' --dry-run
   echo $status
   echo "$output"
   [ "$status" -eq 0 ]
@@ -77,27 +79,25 @@ teardown() {
 }
 
 @test "deletes old files correctly" {
-  run "$SCRIPT" "$TMP_DIR" "365d" '.*\.sql\.gz'
-  echo $status
-  echo "$output"
+  run "$SCRIPT" "$TMP_DIR" 365d --regex '.*\.sql\.gz'
+  echo status: $status
+  echo output: $output
   [ "$status" -eq 0 ]
   [ ! -f "$TMP_DIR/delete-old-2020-01-01_1200.sql.gz" ]
   [ -f "$TMP_DIR/keep-new-2025-01-01_1200.sql.gz" ]
 }
 
 @test "handles custom regex patterns" {
-  run "$SCRIPT" "$TMP_DIR" "365d" 'dump-.*\.sql\.gz'
-  echo $status
-  echo "$output"
+  run "$SCRIPT" "$TMP_DIR" 365d --regex 'dump-.*[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}\.sql\.gz'
+  echo status: $status
+  echo output: $output
   [ "$status" -eq 0 ]
   [ ! -f "$TMP_DIR/dump-test-2023-01-01_1200.sql.gz" ]
   [ -f "$TMP_DIR/delete-old-2020-01-01_1200.sql.gz" ]
 }
 
 @test "does not touch non-matching files" {
-  run "$SCRIPT" "$TMP_DIR" "5y" '.*\.sql\.gz'
-  echo $status
-  echo "$output"
+  run "$SCRIPT" "$TMP_DIR" 5y --regex '.*\.sql\.gz'
   [ "$status" -eq 0 ]
   [ -f "$TMP_DIR/ignore-this-file.txt" ]
 }

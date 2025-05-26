@@ -12,8 +12,8 @@ Arguments:
 
 Options:
   --regex <regex> Regex with date capturing group (optional, default: [0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4})
-  --dry-run     Simulate deletions
   --log <file>  Write actions to specified log file
+  --dry-run     Simulate deletions
 
 Date format:
   The script expects filenames with dates like: 2024-12-01_1200
@@ -21,7 +21,7 @@ Date format:
 EOF
 }
 
-if [[ $# -lt 1 ]] || [[ $1 == "--help" ]]; then
+if [[ $# -lt 2 ]] || [[ $1 == "--help" ]]; then
   show_help
   exit 0
 fi
@@ -32,12 +32,12 @@ REGEX=${3:-'[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}'}
 DRY_RUN=false
 LOG_FILE=""
 
-shift 3 || true
+shift 2 || true
 while (($#)); do
   case $1 in
     --regex)   if (( $# >= 2 )); then REGEX=$2; shift; else echo "Missing value for --regex"; exit 1; fi ;;
-    --dry-run) DRY_RUN=true ;;
     --log)     if (( $# >= 2 )); then LOG_FILE=$2; shift; else echo "Missing value for --log"; exit 1; fi ;;
+    --dry-run) DRY_RUN=true ;;
     *)         echo "Unknown option: $1" >&2; show_help; exit 1 ;;
   esac
   shift
@@ -60,10 +60,10 @@ case $PERIOD in
     ;;
 esac
 
-if ! grep -Eq "$REGEX" <<<"" 2>/dev/null; then
-  echo "[ERROR] Invalid regex: $REGEX" >&2
-  exit 4
-fi
+#if ! echo "" | grep -P "$REGEX" >/dev/null 2>&1; then
+#  echo "[ERROR] Invalid regex: $REGEX" >&2
+#  exit 4
+#fi
 
 log() {
   local msg="[INFO] $1"
