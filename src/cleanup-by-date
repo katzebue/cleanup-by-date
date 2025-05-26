@@ -175,9 +175,13 @@ for file in "$DIR"/*; do
     else
       match="${BASH_REMATCH[0]}"
     fi
-    parsed_date=$(extract_datetime "$match" 2>/dev/null || echo "")
+    parsed_date=$( (extract_datetime "$match" 2>/dev/null) || true )
     if [[ -n $parsed_date ]]; then
       file_ts=$($DATE_BIN -u -d "$parsed_date" +%s 2>/dev/null || echo "")
+      if [[ -z "$file_ts" ]]; then
+        log "Skipping file with invalid timestamp: $fname"
+        continue
+      fi
       cutoff_ts=$($DATE_BIN -u -d "$cutoff" +%s 2>/dev/null || echo "")
       if [[ -z "$cutoff_ts" ]]; then
         echo "[ERROR] Failed to parse cutoff: '$cutoff'" >&2
@@ -189,7 +193,7 @@ for file in "$DIR"/*; do
           if [[ "$DRY_RUN" == true ]]; then
             log "Would delete: $file (file date: $parsed_date)"
           else
-            rm -f "$file"
+            rm -f "$file" || log "[WARN] Failed to delete $file"
             log "Deleted: $file (file date: $parsed_date)"
           fi
           ((deleted++))
