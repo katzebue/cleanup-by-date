@@ -37,10 +37,34 @@ NOW_OVERRIDE=""
 
 while (($#)); do
   case $1 in
-    --regex) [[ $# -ge 2 ]] && REGEX=$2 && shift || { echo "Missing value for --regex"; exit 1; } ;;
-    --log) [[ $# -ge 2 ]] && LOG_FILE=$2 && shift || { echo "Missing value for --log"; exit 1; } ;;
+    --regex)
+      if [[ $# -ge 2 ]]; then
+        REGEX=$2
+        shift
+      else
+        echo "Missing value for --regex" >&2
+        exit 1
+      fi
+      ;;
+    --log)
+      if [[ $# -ge 2 ]]; then
+        LOG_FILE=$2
+        shift
+      else
+        echo "Missing value for --log" >&2
+        exit 1
+      fi
+      ;;
     --dry-run) DRY_RUN=true ;;
-    --now) [[ $# -ge 2 ]] && NOW_OVERRIDE=$2 && shift || { echo "Missing value for --now"; exit 1; } ;;
+    --now)
+      if [[ $# -ge 2 ]]; then
+        NOW_OVERRIDE=$2
+        shift
+      else
+        echo "Missing value for --now" >&2
+        exit 1
+      fi
+      ;;
     *) echo "Unknown option: $1" >&2; show_help; exit 1 ;;
   esac
   shift
