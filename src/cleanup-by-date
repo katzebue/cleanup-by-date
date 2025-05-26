@@ -147,8 +147,8 @@ validate_regex() {
   }
 
   if ! $DATE_BIN -u -d "$full" "+%Y-%m-%d %H:%M:%S" >/dev/null 2>&1; then
-      echo "[WARN] Skipping unparseable datetime: $full"
-      return
+    echo "[WARN] Skipping unparseable datetime: $full"
+    return 0
   fi
 }
 
