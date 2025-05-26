@@ -162,7 +162,7 @@ validate_regex() {
 
 validate_regex "$REGEX" "$DIR"
 
-log "NOW=$now_local, PERIOD=$PERIOD, CUTOFF=$cutoff"
+log "NOW=$now_local, PERIOD=$PERIOD, CUTOFF=$cutoff, DRY_RUN=$DRY_RUN"
 log "Using regex: $REGEX"
 
 deleted=0
