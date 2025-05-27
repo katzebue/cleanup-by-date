@@ -3,8 +3,16 @@ name: Bash Cleanup Tool CI
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '.editorconfig'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '.editorconfig'
 
 jobs:
   test:
