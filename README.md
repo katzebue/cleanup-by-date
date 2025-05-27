@@ -25,10 +25,26 @@ Supports dry-run, custom date patterns, logging, and cron jobs. Works with `date
 
 ## 🛠 Installation
 
+### Installation from source
+
 ```bash
 git clone https://github.com/katzebue/cleanup-by-date.git
 cd cleanup-by-date
 sudo make install
+```
+
+### Quick installation for system
+
+```bash
+curl -L https://raw.githubusercontent.com/katzebue/cleanup-by-date/main/src/cleanup-by-date -o /usr/local/bin/cleanup-by-date
+chmod +x /usr/local/bin/cleanup-by-date
+```
+### Quick installation for user
+
+```bash
+mkdir -p ~/bin
+curl -L https://raw.githubusercontent.com/katzebue/cleanup-by-date/main/src/cleanup-by-date -o ~/bin/cleanup-by-date
+chmod +x ~/bin/cleanup-by-date
 ```
 
 ## 🧪 Run Tests
