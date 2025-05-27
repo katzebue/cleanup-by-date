@@ -55,19 +55,21 @@ make test
 
 ## ✅ Usage
 
+```bash
 cleanup-by-date <path> <period> [options]
+```
 
 Arguments
-•	<path>: directory to scan
-•	<period>: how old files should be (e.g. 7d, 3h, 1w, 1y)
+-	<path>: directory to scan
+-	<period>: how old files should be (e.g. 7d, 3h, 1w, 1y)
 
 Options
-•	--regex <regex>: custom regex with optional capturing group (default: ([0-9]{4}-[0-9]{2}-[0-9]{2}(_[0-9]{4})?))
-•	--log <file>: write actions to log file
-•	--dry-run: simulate deletions
-•	--now <date>: override current date (format: YYYY-MM-DD HH:MM:SS)
+-	--regex <regex>: custom regex with optional capturing group (default: ([0-9]{4}-[0-9]{2}-[0-9]{2}(_[0-9]{4})?))
+-	--log <file>: write actions to log file
+-	--dry-run: simulate deletions
+-	--now <date>: override current date (format: YYYY-MM-DD HH:MM:SS)
 
-Example
+### 🗑️ Example Usage
 
 ```bash
 cleanup-by-date /var/backups 30d --regex 'dump-.*([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4})\.sql' --log cleanup.log --dry-run
