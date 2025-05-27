@@ -120,8 +120,10 @@ extract_datetime() {
   local input="$1"
   if [[ $input =~ ([0-9]{4}-[0-9]{2}-[0-9]{2})_([0-9]{4}) ]]; then
     echo "${BASH_REMATCH[1]} ${BASH_REMATCH[2]:0:2}:${BASH_REMATCH[2]:2:2}"
+    return 0
   elif [[ $input =~ ([0-9]{4}-[0-9]{2}-[0-9]{2}) ]]; then
     echo "${BASH_REMATCH[1]} 00:00"
+    return 0
   else
     return 1
   fi
@@ -151,10 +153,10 @@ validate_regex() {
     exit 4
   fi
 
-  full=$(extract_datetime "$found") || {
+  if ! full=$(extract_datetime "$found"); then
     echo "[ERROR] Extracted date '$found' is not parseable" >&2
     exit 4
-  }
+  fi
 
   if ! $DATE_BIN -u -d "$full" "+%Y-%m-%d %H:%M:%S" >/dev/null 2>&1; then
     echo "[WARN] Skipping unparseable datetime: $full"
@@ -178,20 +180,20 @@ for file in "$DIR"/*; do
       match="${BASH_REMATCH[0]}"
     fi
 
-    parsed_date=$(extract_datetime "$match" 2>/dev/null) || {
+    if ! parsed_date=$(extract_datetime "$match" 2>/dev/null); then
       log "Skipping file with unparsable datetime: $fname"
       continue
-    }
+    fi
 
-    file_ts=$($DATE_BIN -u -d "$parsed_date" +%s 2>/dev/null) || {
+    if ! file_ts=$($DATE_BIN -u -d "$parsed_date" +%s 2>/dev/null); then
       log "Skipping file with invalid timestamp: $fname"
       continue
-    }
+    fi
 
-    cutoff_ts=$($DATE_BIN -u -d "$cutoff" +%s 2>/dev/null) || {
+    if ! cutoff_ts=$($DATE_BIN -u -d "$cutoff" +%s 2>/dev/null); then
       echo "[ERROR] Failed to parse cutoff: '$cutoff'" >&2
       exit 5
-    }
+    fi
 
     if (( file_ts < cutoff_ts )); then
       if [[ "$DRY_RUN" == true ]]; then
